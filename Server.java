@@ -5,12 +5,15 @@ import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 class Server {
 
     public static void main(String[] args) throws Exception {
         Integer port = Integer.parseInt(args[0]);
-        ArrayList<String> postHistory = new ArrayList<String>(); // Keeps Track of all posts
+        LinkedHashMap<byte[],String> postHistory = new LinkedHashMap<>(); // Keeps Track of all posts
         ServerSocket ss = new ServerSocket(port);
         System.out.println("Waiting for incoming connections...");
 
@@ -21,38 +24,45 @@ class Server {
             DataInputStream dis = new DataInputStream(s.getInputStream());
 
             /*
-            Connection Received Send all appropriate data
+            Connection Received Send post history
              */
             if(!postHistory.isEmpty())
-                for(String i: postHistory ){
-                    dos.writeUTF(i);
+                for(byte[] key: postHistory.keySet() ){
+                    dos.writeUTF(postHistory.get(key));
+                    dos.writeInt(key.length);
+                    dos.write(key);
+
                 }
 
-            //TODO: Decrypt messages
-
-
-
-            boolean firstMessage = true;
             String sender = "dummy";
+            String date = "now";
             String itext; // Incoming Text
+            byte[] msgText;
             try {
                 while (( itext = dis.readUTF()) != null) {
                     // The first message is always the userID
-                    if(firstMessage == true){
                         sender = itext;
-                        firstMessage = false;
-                    } else {
+                        date = dis.readUTF();
+                        msgText = dis.readAllBytes();
                         // User Message
-                        String msg =
+                        String msgOutput =
                                 "**************************\n" +
                                 "Sender: " + sender + "\n" +
-                                "Date: " + new java.util.Date() + "\n" +
-                                "Message: " + itext +
+                                "Date: " + date + "\n" +
+                                "Message: " + msgText +
                                 "\n**************************";
 
-                        System.out.println(msg);
-                        postHistory.add(msg);
-                    }
+                        System.out.println(msgOutput);
+//                        postHistory.add(msgOutput);
+                    // This message is stored in postHistory and will be sent to the next client,
+                    // msgText is stored separately to make it easier to access it and decipher.
+                    String messageToSend =
+                            "**************************\n" +
+                            "Sender: " + sender + "\n" +
+                            "Date: " + date + "\n" +
+                            "Message: ";
+                        postHistory.put(msgText,messageToSend);
+
 
                 }
             }
