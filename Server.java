@@ -13,7 +13,7 @@ class Server {
 
     public static void main(String[] args) throws Exception {
         Integer port = Integer.parseInt(args[0]);
-        LinkedHashMap<byte[],String> postHistory = new LinkedHashMap<>(); // Keeps Track of all posts
+        LinkedHashMap<String,String> postHistory = new LinkedHashMap<>(); // Keeps Track of all posts
         ServerSocket ss = new ServerSocket(port);
         System.out.println("Waiting for incoming connections...");
 
@@ -27,23 +27,22 @@ class Server {
             Connection Received Send post history
              */
             if(!postHistory.isEmpty())
-                for(byte[] key: postHistory.keySet() ){
+                for(String key: postHistory.keySet() ){
                     dos.writeUTF(postHistory.get(key));
-                    dos.writeInt(key.length);
-                    dos.write(key);
+                    dos.writeUTF(key);
 
                 }
 
             String sender = "dummy";
             String date = "now";
-            String itext; // Incoming Text
-            byte[] msgText;
+            String itext;
+            String msgText;
             try {
                 while (( itext = dis.readUTF()) != null) {
                     // The first message is always the userID
                         sender = itext;
                         date = dis.readUTF();
-                        msgText = dis.readAllBytes();
+                        msgText = dis.readUTF();
                         // User Message
                         String msgOutput =
                                 "**************************\n" +

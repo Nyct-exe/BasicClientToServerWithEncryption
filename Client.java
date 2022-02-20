@@ -5,6 +5,7 @@ import java.net.Socket;
 import java.security.Key;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.util.Base64;
 import java.util.Scanner;
 
 class Client {
@@ -27,20 +28,21 @@ class Client {
             // Read and Decrypt
             while(dis.available() > 0){
                 System.out.print(dis.readUTF());
+                String msgText = dis.readUTF();
+                // Decode Base64
+                Base64.Decoder decoder = Base64.getDecoder();
+                byte[] msgEncrypted = decoder.decode(msgText);
                 // Decrypt
-                int length = dis.readInt();
-                if(length>0){
-                    byte[] msg = new byte[length];
-                    dis.readFully(msg,0,msg.length);
-                    try{
-                        cipher.init(Cipher.DECRYPT_MODE,privateKey);
-                        String decipheredMsg = new String(cipher.doFinal(msg),"UTF8");
-                        System.out.print(decipheredMsg);
-                    } catch (BadPaddingException badPaddingException){
-                        System.out.print(msg);
-                    }
-                    System.out.println("\n**************************");
+                try{
+                    cipher.init(Cipher.DECRYPT_MODE,privateKey);
+                    String decipheredMsg = new String(cipher.doFinal(msgEncrypted),"UTF8");
+                    System.out.print(decipheredMsg);
+                } catch (BadPaddingException badPaddingException){
+                    System.out.print(msgText);
+                } catch (IllegalArgumentException illegalArgumentException){
+                    System.out.print(msgText);
                 }
+                System.out.println("\n**************************");
             }
 
             // Asking user if they want to post a message
@@ -53,7 +55,8 @@ class Client {
                 System.out.println("Enter the recipient userid (type \"all\" for posting without encryption):");
                 String recipient = sc.next();
                 System.out.println("Enter your message:");
-                String userMessage = sc.next();
+                sc.nextLine();
+                String userMessage = sc.nextLine();
                 sc.close();
 
                 // Getting the public key of the recipient
@@ -66,11 +69,13 @@ class Client {
                 dos.writeUTF(String.valueOf(new java.util.Date()));
 
                 // Encrypting the message
-
                 cipher.init(Cipher.ENCRYPT_MODE, publicKey);
                 byte[] encryptText = cipher.doFinal(userMessage.getBytes("UTF8"));
 
-                dos.write(encryptText);
+                //BASE64 Coversion
+                Base64.Encoder encoder = Base64.getEncoder();
+                String encodedText = encoder.encodeToString(encryptText);
+                dos.writeUTF(encodedText);
 
 
                 // TODO: Send signature
